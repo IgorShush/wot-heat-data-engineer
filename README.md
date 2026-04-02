@@ -12,7 +12,7 @@ All schemas target **PostgreSQL** and are designed to handle billions of rows of
 |---|---|---|
 | [Problem 1](./problem1/schema.md) | Battle schema design | ✅ Done |
 | [Problem 2](./problem2/schema.md) | Graphics settings schema | ✅ Done |
-| Problem 3 | Longest consecutive win streak (SQL) | 🔜 Coming |
+| [Problem 3](./problem3/solution.md) | Longest consecutive win streak (SQL) | ✅ Done |
 | Problem 4 | Per-player per-day metrics (SQL) | 🔜 Coming |
 | Problem 5 | Data pipeline design (Data Assistant feature) | 🔜 Coming |
 
@@ -47,3 +47,17 @@ Designs an efficient schema to store the graphics settings each player used per 
 - **`settings_hash`** — an MD5 digest of all setting values enables fast, lock-free deduplication using `ON CONFLICT DO NOTHING`.
 - **Shared quality level lookup** — all six graphics dropdowns (General, Objects, Terrain, etc.) reference the same `graphics_quality_levels` table instead of six identical lookups.
 - **`BIGSERIAL` for `profile_id`** — profiles are created centrally (not on distributed game servers), so a sequential integer is safe, cheaper to store, and faster to join than a UUID.
+
+## Problem 3 — Longest Consecutive Win Streak
+
+Finds the longest unbroken series of wins for every player who participated in any battle.
+
+- **[solution.md](./problem3/solution.md)** — full explanation of the technique and query structure
+- **[query.sql](./problem3/query.sql)** — ready-to-run PostgreSQL query
+
+### Key design decisions
+
+- **Gaps and Islands technique** — two `ROW_NUMBER()` window functions per player (one over all battles, one over wins only); their difference is constant within a consecutive win streak, identifying each "island" without recursion.
+- **Draws break streaks** — only `winning_team = bp.team_number` counts as a win; draws and losses both map to `FALSE` and interrupt a streak equally.
+- **Zero-win players included** — a `LEFT JOIN` + `COALESCE(..., 0)` ensures every participant appears in the output, even those who never won a battle.
+- **Tiebreaker on `battle_id`** — `ORDER BY started_at, battle_id` guarantees a deterministic ordering when two battles share the same timestamp.
