@@ -14,7 +14,7 @@ All schemas target **PostgreSQL** and are designed to handle billions of rows of
 | [Problem 2](./problem2/schema.md) | Graphics settings schema | ✅ Done |
 | [Problem 3](./problem3/solution.md) | Longest consecutive win streak (SQL) | ✅ Done |
 | [Problem 4](./problem4/solution.md) | Per-player per-day metrics (SQL) | ✅ Done |
-| Problem 5 | Data pipeline design (Data Assistant feature) | 🔜 Coming |
+| [Problem 5](./problem5/solution.md) | Data pipeline design (Data Assistant feature) | ✅ Done |
 
 ---
 
@@ -75,3 +75,24 @@ Retrieves three specific-ranked battle metrics per player per day in a single qu
 - **Conditional aggregation** — `MAX(CASE WHEN result = 'win' AND rn = 7 THEN damage_dealt END)` extracts the single matching value per metric in one pass over the data, avoiding three separate subqueries.
 - **Explicit UTC date conversion** — `(started_at AT TIME ZONE 'UTC')::DATE` prevents silent day-boundary shifts from database session timezone settings.
 - **`NULL` semantics** — thresholds not reached (e.g. fewer than 7 wins) produce `NULL`, naturally distinguishing "not enough battles" from "zero damage".
+
+## Problem 5 — Data Assistant Pipeline
+
+Designs an end-to-end pipeline from raw DWH data to aggregated vehicle stats in the game client.
+
+- **[solution.md](./problem5/solution.md)** — full architecture design with diagrams, stage-by-stage breakdown, and scalability / maintainability / efficiency analysis
+
+### Architecture stages
+
+1. **DWH** — centralized source of truth; raw battle and vehicle data; never queried directly by the client
+2. **Aggregation layer** — Airflow-orchestrated incremental jobs; watermark pattern ensures only new battles are processed each run; upserts pre-computed stats into the aggregated store
+3. **Aggregated store** — PostgreSQL (or MongoDB) keyed by `player_id`; `JSONB` columns for crew skills, equipment, and boosters to absorb schema evolution without migrations
+4. **Cache layer** — Redis with 5-minute TTL; explicit invalidation by the aggregation job on write; absorbs read spikes transparently
+5. **API service** — stateless, horizontally scalable REST/gRPC service; single endpoint per player; returns only garage-active vehicles
+
+### Key design decisions
+
+- **Incremental watermark** — jobs process only the delta since the last run; keeps DWH compute cost low and job duration in seconds regardless of total history size
+- **Pre-aggregation** — DWH is optimized for throughput, not latency; pre-computing results decouples write scale from read latency
+- **JSONB for evolving schemas** — crew skills, equipment, and boosters change with every game patch; JSONB absorbs new keys without ALTER TABLE
+- **Cache invalidation on write** — aggregation job explicitly evicts Redis keys for updated players, so clients always see fresh data after the next job run rather than waiting for TTL expiry
