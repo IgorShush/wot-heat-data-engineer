@@ -37,8 +37,8 @@ battle_results AS (
 -- Step 2: numbered
 -- Assign two row numbers per player, both ordered by battle time:
 --
---   rn_all         — counts every battle regardless of result
---   rn_partitioned — counts battles partitioned by result (wins separately
+--   rn_all         - counts every battle regardless of result
+--   rn_partitioned - counts battles partitioned by result (wins separately
 --                    from non-wins)
 --
 -- The KEY INSIGHT of the Gaps and Islands technique:

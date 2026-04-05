@@ -1,4 +1,4 @@
-# Problem 3 — Longest Consecutive Win Streak per Player
+# Problem 3 - Longest Consecutive Win Streak per Player
 
 ## Task
 
@@ -10,14 +10,14 @@ Using the schema from Problem 1, write a SQL script to find the longest series o
 
 ## Technique: Gaps and Islands
 
-The standard non-recursive approach to detecting consecutive sequences in SQL is called **Gaps and Islands**. It relies entirely on window functions — no loops, no recursion, no self-joins.
+The standard non-recursive approach to detecting consecutive sequences in SQL is called **Gaps and Islands**. It relies entirely on window functions - no loops, no recursion, no self-joins.
 
 ### Core insight
 
 Assign two row numbers to each battle per player, both ordered by time:
 
-- `rn_all` — counts **every** battle, regardless of result
-- `rn_partitioned` — counts battles **partitioned by result** (wins counted separately from losses/draws)
+- `rn_all` - counts **every** battle, regardless of result
+- `rn_partitioned` - counts battles **partitioned by result** (wins counted separately from losses/draws)
 
 Within a consecutive run of wins, the difference `rn_all - rn_partitioned` is **constant**. The moment a loss or draw appears, it increments `rn_all` without incrementing the wins counter, permanently shifting the difference. Each shift marks the start of a new island.
 
@@ -27,11 +27,11 @@ Within a consecutive run of wins, the difference `rn_all - rn_partitioned` is **
 |--------|--------|--------|----------------|------------|--------|
 | 1 | Win | 1 | 1 | **0** | A |
 | 2 | Win | 2 | 2 | **0** | A |
-| 3 | Loss | 3 | 1 | 2 | — |
+| 3 | Loss | 3 | 1 | 2 | - |
 | 4 | Win | 4 | 3 | **1** | B |
 | 5 | Win | 5 | 4 | **1** | B |
 | 6 | Win | 6 | 5 | **1** | B |
-| 7 | Draw | 7 | 2 | 5 | — |
+| 7 | Draw | 7 | 2 | 5 | - |
 | 8 | Win | 8 | 6 | **2** | C |
 
 After filtering to wins and grouping by `(player_id, difference)`:
@@ -77,7 +77,7 @@ CASE
 END AS is_win
 ```
 
-A player wins when their `team_number` matches `battles.winning_team`. Both losses and draws map to `FALSE` — both break a win streak equally.
+A player wins when their `team_number` matches `battles.winning_team`. Both losses and draws map to `FALSE` - both break a win streak equally.
 
 ---
 
@@ -141,8 +141,8 @@ A `LEFT JOIN` from all participants to `max_streaks` ensures players with zero w
 
 A recursive CTE would walk battle-by-battle per player, carrying a running streak counter. While logically straightforward, it has two problems at WoT HEAT's scale:
 
-1. **Performance** — recursive CTEs typically cannot be parallelised and process rows one at a time. Window functions are set-based and execute in a single parallel pass.
-2. **Engine support** — the problem explicitly states that recursive queries have limited support across different database engines. The Gaps and Islands approach runs on any engine that supports `ROW_NUMBER()` (PostgreSQL, MySQL 8+, SQL Server, BigQuery, Snowflake, Redshift — all do).
+1. **Performance** - recursive CTEs typically cannot be parallelised and process rows one at a time. Window functions are set-based and execute in a single parallel pass.
+2. **Engine support** - the problem explicitly states that recursive queries have limited support across different database engines. The Gaps and Islands approach runs on any engine that supports `ROW_NUMBER()` (PostgreSQL, MySQL 8+, SQL Server, BigQuery, Snowflake, Redshift - all do).
 
 ---
 

@@ -1,4 +1,4 @@
-# Problem 5 — Data Assistant Pipeline Design
+# Problem 5 - Data Assistant Pipeline Design
 
 ## Task
 
@@ -10,7 +10,7 @@ Requirements: scalability, maintainability, efficiency.
 
 ## The Core Problem
 
-The DWH is optimized for **throughput** — scanning billions of rows to produce analytical results. The game client needs **low latency** — a player opening their garage cannot wait seconds for a DWH query to complete.
+The DWH is optimized for **throughput** - scanning billions of rows to produce analytical results. The game client needs **low latency** - a player opening their garage cannot wait seconds for a DWH query to complete.
 
 The pipeline bridges this gap by **pre-computing aggregations** and storing the results in a fast serving layer. The DWH is never queried directly by the client.
 
@@ -64,33 +64,33 @@ The pipeline bridges this gap by **pre-computing aggregations** and storing the 
                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        GAME CLIENT                                  │
-│   Data Assistant — vehicle stats, crew skills, equipment, boosters  │
+│   Data Assistant - vehicle stats, crew skills, equipment, boosters  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Stage 1 — DWH (Source of Truth)
+## Stage 1 - DWH (Source of Truth)
 
 The DWH holds all raw data: the battle schema from Problem 1 plus additional tables for:
 
-- **Vehicle inventory** — which vehicles a player has in their garage
-- **Crew skill assignments** — which skills are assigned per crew member per vehicle
-- **Equipment loadouts** — which equipment modules are mounted on each vehicle
-- **Battle booster usage** — which boosters were activated per battle
+- **Vehicle inventory** - which vehicles a player has in their garage
+- **Crew skill assignments** - which skills are assigned per crew member per vehicle
+- **Equipment loadouts** - which equipment modules are mounted on each vehicle
+- **Battle booster usage** - which boosters were activated per battle
 
 This data is append-only and immutable once written. The pipeline reads from it but never modifies it.
 
 ---
 
-## Stage 2 — Aggregation Layer
+## Stage 2 - Aggregation Layer
 
 ### Orchestrator (Apache Airflow)
 
 Airflow triggers aggregation jobs on a schedule (every 5–15 minutes depending on required freshness). It manages retries, dependency tracking, and alerting.
 
 Each DAG run:
-1. Reads the **watermark** — the timestamp of the last successfully processed battle
+1. Reads the **watermark** - the timestamp of the last successfully processed battle
 2. Queries the DWH for all battles completed after the watermark
 3. Runs the aggregation job
 4. On success, advances the watermark to the latest processed battle timestamp
@@ -115,11 +115,11 @@ Example metrics computed per player per vehicle:
 
 ### Why incremental and not full recompute?
 
-At billions of battles, reprocessing all history on every job run would take hours. The incremental watermark pattern ensures each job run only touches the **delta** — the new battles since the last run. A player finishing a battle sees updated stats within one job cycle (minutes), with jobs completing in seconds.
+At billions of battles, reprocessing all history on every job run would take hours. The incremental watermark pattern ensures each job run only touches the **delta** - the new battles since the last run. A player finishing a battle sees updated stats within one job cycle (minutes), with jobs completing in seconds.
 
 ---
 
-## Stage 3 — Aggregated Store
+## Stage 3 - Aggregated Store
 
 A fast, read-optimized database that stores pre-computed stats per player.
 
@@ -150,12 +150,12 @@ CREATE INDEX idx_pvs_player_id ON player_vehicle_stats(player_id);
 
 ---
 
-## Stage 4 — Cache Layer (Redis)
+## Stage 4 - Cache Layer (Redis)
 
 Redis sits between the API and the aggregated store. When a player opens their garage:
 
 1. API checks Redis for key `stats:{player_id}`
-2. **Cache hit** (most common): return cached JSON — sub-millisecond latency
+2. **Cache hit** (most common): return cached JSON - sub-millisecond latency
 3. **Cache miss**: query aggregated store, serialize result, write to Redis with TTL of 5 minutes, return result
 
 **TTL of 5 minutes** matches the aggregation job frequency. There is no value in serving data fresher than the pipeline can produce it.
@@ -164,7 +164,7 @@ Redis sits between the API and the aggregated store. When a player opens their g
 
 ---
 
-## Stage 5 — API Service
+## Stage 5 - API Service
 
 A lightweight stateless service exposing a single endpoint per consumer need:
 
@@ -196,7 +196,7 @@ Returns the full aggregated stats payload for all vehicles in the player's garag
 }
 ```
 
-The API is **stateless** and horizontally scalable — any number of instances can run behind a load balancer with no coordination.
+The API is **stateless** and horizontally scalable - any number of instances can run behind a load balancer with no coordination.
 
 ---
 

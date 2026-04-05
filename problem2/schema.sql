@@ -34,7 +34,7 @@ CREATE TABLE graphics_quality_levels (
 CREATE TABLE graphics_profiles (
     profile_id      BIGSERIAL    PRIMARY KEY,
 
-    -- Hash of all setting values — used for fast deduplication lookups.
+    -- Hash of all setting values - used for fast deduplication lookups.
     -- MD5 produces a 32-char hex string. UNIQUE enforces one row per config.
     settings_hash   CHAR(32)     NOT NULL UNIQUE,
 

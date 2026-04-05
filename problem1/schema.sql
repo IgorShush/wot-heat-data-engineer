@@ -69,7 +69,7 @@ CREATE TABLE death_reasons (
 -- -----------------------------------------------------------------------------
 -- battles
 -- One row per battle instance.
--- This is the central fact record — all other tables reference it.
+-- This is the central fact record - all other tables reference it.
 -- -----------------------------------------------------------------------------
 CREATE TABLE battles (
     battle_id        UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -106,10 +106,10 @@ CREATE TABLE battle_participants (
     -- Whether this player survived the battle
     survived           BOOLEAN      NOT NULL DEFAULT FALSE,
 
-    -- Cause of death or early exit — NULL if player survived
+    -- Cause of death or early exit - NULL if player survived
     death_reason_id    INT                   REFERENCES death_reasons(death_reason_id),
 
-    -- The player who destroyed this player's vehicle — NULL if survived or environment kill
+    -- The player who destroyed this player's vehicle - NULL if survived or environment kill
     destroyed_by_player_id  UUID             REFERENCES players(player_id),
 
     -- Whether the player voluntarily left the battle before it ended
@@ -124,7 +124,7 @@ CREATE INDEX idx_participants_player_id  ON battle_participants(player_id);
 
 -- -----------------------------------------------------------------------------
 -- battle_player_stats
--- One row per player per battle — combat performance metrics.
+-- One row per player per battle - combat performance metrics.
 -- Kept separate from battle_participants to isolate the high-cardinality numeric data
 -- and make it easier to add new stat columns without touching the identity table.
 -- -----------------------------------------------------------------------------
@@ -153,7 +153,7 @@ CREATE TABLE battle_player_stats (
 
 -- -----------------------------------------------------------------------------
 -- battle_player_economy
--- One row per player per battle — virtual currency flows.
+-- One row per player per battle - virtual currency flows.
 -- Separated from stats for the same narrow-table reasoning:
 -- currency schema may change independently of combat stats.
 -- -----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-# Problem 1 — Battle Schema Design
+# Problem 1 - Battle Schema Design
 
 ## Overview
 
@@ -8,13 +8,13 @@ The goal is to design a schema that stores comprehensive details about every bat
 
 ## Design Principles
 
-1. **Narrow fact tables** — each table has a focused responsibility. Combat stats, economy, and participant identity are kept in separate tables. This makes it easier to add columns without touching unrelated data, and allows columnar storage engines to compress data more effectively.
+1. **Narrow fact tables** - each table has a focused responsibility. Combat stats, economy, and participant identity are kept in separate tables. This makes it easier to add columns without touching unrelated data, and allows columnar storage engines to compress data more effectively.
 
-2. **Lookup tables for enumerations** — types like `battle_types`, `maps`, and `death_reasons` are stored once and referenced by integer ID. This avoids repeating string values across billions of rows.
+2. **Lookup tables for enumerations** - types like `battle_types`, `maps`, and `death_reasons` are stored once and referenced by integer ID. This avoids repeating string values across billions of rows.
 
-3. **UUID primary keys** — `battles` and `players` use `UUID` rather than `BIGSERIAL`. Because multiple game servers generate battle records independently and in parallel, a centralized auto-increment sequence would become a bottleneck and a single point of failure. UUIDs are generated locally by each server with no coordination required and no risk of collision.
+3. **UUID primary keys** - `battles` and `players` use `UUID` rather than `BIGSERIAL`. Because multiple game servers generate battle records independently and in parallel, a centralized auto-increment sequence would become a bottleneck and a single point of failure. UUIDs are generated locally by each server with no coordination required and no risk of collision.
 
-4. **Indexes on foreign keys and time columns** — `started_at`, `battle_type_id`, `map_id`, `player_id` are all indexed because they are the most common filter and join columns in analytical queries.
+4. **Indexes on foreign keys and time columns** - `started_at`, `battle_type_id`, `map_id`, `player_id` are all indexed because they are the most common filter and join columns in analytical queries.
 
 ---
 
@@ -88,7 +88,7 @@ Examples of codes: `destroyed_by_player`, `destroyed_by_fire`, `destroyed_by_env
 ---
 
 ### `battles`
-The central fact record — one row per battle.
+The central fact record - one row per battle.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -101,7 +101,7 @@ The central fact record — one row per battle.
 | `server_id` | VARCHAR(64) | Game server that hosted the battle |
 
 **Why `winning_team` and not `winning_team_id`?**
-Teams are not persistent entities — they exist only within the scope of one battle. Storing `1` or `2` is sufficient and avoids an unnecessary join.
+Teams are not persistent entities - they exist only within the scope of one battle. Storing `1` or `2` is sufficient and avoids an unnecessary join.
 
 **Why `NULL` for draws?**
 A `CHECK` constraint allows only `1`, `2`, or `NULL`. `NULL` is semantically accurate: there is no winner. This avoids adding a separate boolean `is_draw` column.
@@ -122,7 +122,7 @@ One row per player per battle. Captures team membership, survival, death, and de
 | `destroyed_by_player_id` | UUID FK | References `players`; `NULL` if survived or environment kill |
 | `left_early` | BOOLEAN | `TRUE` if player exited before battle ended |
 
-**Unique constraint on `(battle_id, player_id)`** — a player can only appear once per battle, enforced at the database level.
+**Unique constraint on `(battle_id, player_id)`** - a player can only appear once per battle, enforced at the database level.
 
 **`destroyed_by_player_id` vs. `destroyed_by_participant_id`?**
 We reference `players.player_id` directly rather than `battle_participants.participant_id`. This keeps the FK simple and avoids a circular dependency during inserts (both participants must exist before the FK can be set, which complicates the write path).
@@ -165,7 +165,7 @@ Virtual currency flows per player per battle.
 | `bonds_spent` | INT | High-tier currency spent |
 
 **Why separated from stats?**
-Currency schema evolves independently — new currency types can be added without touching combat stats. Queries about economy (e.g. revenue analysis) never need to join against damage columns, so keeping them apart also improves query performance.
+Currency schema evolves independently - new currency types can be added without touching combat stats. Queries about economy (e.g. revenue analysis) never need to join against damage columns, so keeping them apart also improves query performance.
 
 ---
 

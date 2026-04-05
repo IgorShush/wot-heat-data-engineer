@@ -78,7 +78,7 @@ ranked AS (
 -- Group by (player, date) and use conditional aggregation to extract
 -- exactly the row we care about for each metric.
 --
--- MAX() here is not a true aggregation — since each (player, date, result, rn)
+-- MAX() here is not a true aggregation - since each (player, date, result, rn)
 -- combination maps to at most one row, MAX() simply surfaces that single value
 -- or returns NULL if no matching row exists.
 --

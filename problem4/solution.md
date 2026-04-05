@@ -1,12 +1,12 @@
-# Problem 4 — Per-Player Per-Day Metrics
+# Problem 4 - Per-Player Per-Day Metrics
 
 ## Task
 
 Using the schema from Problem 1, write a single query that returns **one row per player per day** containing:
 
-1. `damage_dealt_7th_win` — damage dealt in the player's 7th winning battle that day
-2. `kills_3rd_loss` — kills made in the player's 3rd losing battle that day
-3. `first_draw_started_at` — date and time of the player's 1st draw that day
+1. `damage_dealt_7th_win` - damage dealt in the player's 7th winning battle that day
+2. `kills_3rd_loss` - kills made in the player's 3rd losing battle that day
+3. `first_draw_started_at` - date and time of the player's 1st draw that day
 
 All three values are `NULL` when the player did not reach that threshold on a given day.
 
@@ -16,8 +16,8 @@ All three values are `NULL` when the player did not reach that threshold on a gi
 
 Each metric requires picking a **specific-ranked battle of a specific outcome type** within a player-day window. The approach combines two patterns:
 
-1. **`ROW_NUMBER()`** — ranks battles independently per result type (wins, losses, draws) within each player-day group.
-2. **Conditional aggregation** — `MAX(CASE WHEN ... THEN value END)` extracts the one matching value per metric without needing a separate subquery or self-join for each.
+1. **`ROW_NUMBER()`** - ranks battles independently per result type (wins, losses, draws) within each player-day group.
+2. **Conditional aggregation** - `MAX(CASE WHEN ... THEN value END)` extracts the one matching value per metric without needing a separate subquery or self-join for each.
 
 ---
 
@@ -46,7 +46,7 @@ CASE
 END AS result
 ```
 
-Determines the battle outcome from the **player's perspective** — the same battle is a win for one team and a loss for the other.
+Determines the battle outcome from the **player's perspective** - the same battle is a win for one team and a loss for the other.
 
 ```sql
 (b.started_at AT TIME ZONE 'UTC')::DATE AS battle_date
@@ -83,7 +83,7 @@ This is the key step. By partitioning on `(player_id, battle_date, result)`, the
 
 ---
 
-### Final SELECT — Conditional Aggregation
+### Final SELECT - Conditional Aggregation
 
 ```sql
 MAX(CASE WHEN result = 'win'  AND rn = 7 THEN damage_dealt END)  AS damage_dealt_7th_win,
@@ -91,7 +91,7 @@ MAX(CASE WHEN result = 'loss' AND rn = 3 THEN kills        END)  AS kills_3rd_lo
 MAX(CASE WHEN result = 'draw' AND rn = 1 THEN started_at   END)  AS first_draw_started_at
 ```
 
-After grouping by `(player_id, battle_date)`, each `CASE` expression matches **at most one row** in the group — the row where `result` and `rn` both match. `MAX()` extracts that single value; if no row matches, the result is `NULL`.
+After grouping by `(player_id, battle_date)`, each `CASE` expression matches **at most one row** in the group - the row where `result` and `rn` both match. `MAX()` extracts that single value; if no row matches, the result is `NULL`.
 
 This is more efficient than three separate subqueries or lateral joins because the data is scanned only once.
 
@@ -120,9 +120,9 @@ Output row for Igor on 2024-03-10:
 |--------|-------------|----------------------|----------------|-----------------------|
 | Igor   | 2024-03-10  | **1 340**            | **0**          | **2024-03-10 12:18**  |
 
-- `damage_dealt_7th_win = 1 340` — from win#7 at 21:07
-- `kills_3rd_loss = 0` — from loss#3 at 15:11
-- `first_draw_started_at = 2024-03-10 12:18` — from draw#1 at 12:18
+- `damage_dealt_7th_win = 1 340` - from win#7 at 21:07
+- `kills_3rd_loss = 0` - from loss#3 at 15:11
+- `first_draw_started_at = 2024-03-10 12:18` - from draw#1 at 12:18
 
 ---
 
